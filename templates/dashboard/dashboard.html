@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - DeepQ-AI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-chart-line me-2"></i>World Bank Data Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="filter-section">
+    <h5><i class="fas fa-filter me-2"></i>Filters</h5>
+    <div class="row">
+        <div class="col-md-4">
+            <label for="countrySelect" class="form-label">Countries</label>
+            <select id="countrySelect" class="form-select" multiple>
+                <option value="US" selected>United States</option>
+                <option value="CN" selected>China</option>
+                <option value="IN" selected>India</option>
+                <option value="DE" selected>Germany</option>
+                <option value="JP" selected>Japan</option>
+                <option value="GB">United Kingdom</option>
+                <option value="FR">France</option>
+                <option value="BR">Brazil</option>
+                <option value="CA">Canada</option>
+                <option value="AU">Australia</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="startYear" class="form-label">Start Year</label>
+            <input type="number" id="startYear" class="form-control" value="2010" min="2000" max="2022">
+        </div>
+        <div class="col-md-3">
+            <label for="endYear" class="form-label">End Year</label>
+            <input type="number" id="endYear" class="form-control" value="2022" min="2000" max="2022">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button id="updateCharts" class="btn btn-primary w-100">
+                <i class="fas fa-sync-alt me-2"></i>Update
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>GDP Trends (Line Chart)</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="gdpChart"></canvas>
+                </div>
+                <div id="gdpLoading" class="loading d-none">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading GDP data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Population Comparison (Bar Chart)</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="populationChart"></canvas>
+                </div>
+                <div id="populationLoading" class="loading d-none">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading population data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>CO2 Emissions Over Time (Area Chart)</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="co2Chart"></canvas>
+                </div>
+                <div id="co2Loading" class="loading d-none">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading CO2 emissions data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Source Info -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Data Source:</strong> World Bank Open Data API - 
+            <a href="https://data.worldbank.org/" target="_blank">https://data.worldbank.org/</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let gdpChart, populationChart, co2Chart;
+
+// Color palette for countries
+const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+];
+
+// Initialize charts
+function initCharts() {
+    // GDP Line Chart
+    const gdpCtx = document.getElementById('gdpChart').getContext('2d');
+    gdpChart = new Chart(gdpCtx, {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'GDP (Current US$) Over Time'
+                },
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Year'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'GDP (Trillions USD)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + (value / 1e12).toFixed(1) + 'T';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Population Bar Chart
+    const popCtx = document.getElementById('populationChart').getContext('2d');
+    populationChart = new Chart(popCtx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Population by Country (Latest Year)'
+                }
+            },
+            scales: {
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Population (Millions)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return (value / 1e6).toFixed(0) + 'M';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // CO2 Area Chart
+    const co2Ctx = document.getElementById('co2Chart').getContext('2d');
+    co2Chart = new Chart(co2Ctx, {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'CO2 Emissions Over Time'
+                },
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Year'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'CO2 Emissions (Million kt)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return (value / 1000).toFixed(1) + 'M kt';
+                        }
+                    }
+                }
+            },
+            elements: {
+                line: {
+                    fill: true
+                }
+            }
+        }
+    });
+}
+
+// Fetch and update GDP data
+async function updateGDPChart() {
+    const countries = Array.from(document.getElementById('countrySelect').selectedOptions)
+        .map(option => option.value).join(';');
+    const startYear = document.getElementById('startYear').value;
+    const endYear = document.getElementById('endYear').value;
+
+    document.getElementById('gdpLoading').classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/api/gdp-data/?countries=${countries}&start_year=${startYear}&end_year=${endYear}`);
+        const result = await response.json();
+        
+        // Group data by country
+        const countryData = {};
+        result.data.forEach(item => {
+            if (!countryData[item.country]) {
+                countryData[item.country] = [];
+            }
+            countryData[item.country].push({
+                x: item.year,
+                y: item.value
+            });
+        });
+
+        // Create datasets
+        const datasets = Object.keys(countryData).map((country, index) => ({
+            label: country,
+            data: countryData[country].sort((a, b) => a.x - b.x),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length] + '20',
+            tension: 0.1
+        }));
+
+        gdpChart.data.datasets = datasets;
+        gdpChart.update();
+    } catch (error) {
+        console.error('Error fetching GDP data:', error);
+    } finally {
+        document.getElementById('gdpLoading').classList.add('d-none');
+    }
+}
+
+// Fetch and update Population data
+async function updatePopulationChart() {
+    const countries = Array.from(document.getElementById('countrySelect').selectedOptions)
+        .map(option => option.value).join(';');
+    const startYear = document.getElementById('startYear').value;
+    const endYear = document.getElementById('endYear').value;
+
+    document.getElementById('populationLoading').classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/api/population-data/?countries=${countries}&start_year=${startYear}&end_year=${endYear}`);
+        const result = await response.json();
+        
+        // Get latest year data for each country
+        const latestData = {};
+        result.data.forEach(item => {
+            if (!latestData[item.country] || item.year > latestData[item.country].year) {
+                latestData[item.country] = item;
+            }
+        });
+
+        const labels = Object.keys(latestData);
+        const data = labels.map(country => latestData[country].value);
+        const backgroundColors = labels.map((_, index) => colors[index % colors.length]);
+
+        populationChart.data.labels = labels;
+        populationChart.data.datasets = [{
+            label: 'Population',
+            data: data,
+            backgroundColor: backgroundColors,
+            borderColor: backgroundColors.map(color => color.replace('20', '')),
+            borderWidth: 1
+        }];
+        populationChart.update();
+    } catch (error) {
+        console.error('Error fetching population data:', error);
+    } finally {
+        document.getElementById('populationLoading').classList.add('d-none');
+    }
+}
+
+// Fetch and update CO2 data
+async function updateCO2Chart() {
+    const countries = Array.from(document.getElementById('countrySelect').selectedOptions)
+        .map(option => option.value).join(';');
+    const startYear = document.getElementById('startYear').value;
+    const endYear = Math.min(document.getElementById('endYear').value, 2019); // CO2 data limited to 2019
+
+    document.getElementById('co2Loading').classList.remove('d-none');
+    
+    try {
+        const response = await fetch(`/api/co2-data/?countries=${countries}&start_year=${startYear}&end_year=${endYear}`);
+        const result = await response.json();
+        
+        // Group data by country
+        const countryData = {};
+        result.data.forEach(item => {
+            if (!countryData[item.country]) {
+                countryData[item.country] = [];
+            }
+            countryData[item.country].push({
+                x: item.year,
+                y: item.value
+            });
+        });
+
+        // Create datasets
+        const datasets = Object.keys(countryData).map((country, index) => ({
+            label: country,
+            data: countryData[country].sort((a, b) => a.x - b.x),
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length] + '40',
+            fill: true,
+            tension: 0.1
+        }));
+
+        co2Chart.data.datasets = datasets;
+        co2Chart.update();
+    } catch (error) {
+        console.error('Error fetching CO2 data:', error);
+    } finally {
+        document.getElementById('co2Loading').classList.add('d-none');
+    }
+}
+
+// Update all charts
+function updateAllCharts() {
+    updateGDPChart();
+    updatePopulationChart();
+    updateCO2Chart();
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initCharts();
+    updateAllCharts();
+    
+    // Add event listener to update button
+    document.getElementById('updateCharts').addEventListener('click', updateAllCharts);
+});
+</script>
+{% endblock %}
