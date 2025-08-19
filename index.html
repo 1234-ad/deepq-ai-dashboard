@@ -3,155 +3,632 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepQ AI Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>DeepQ AI Dashboard - Advanced Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { background-color: #f8f9fa; }
-        .dashboard-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 0; }
-        .card { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border: none; margin-bottom: 2rem; }
-        .chart-container { position: relative; height: 400px; }
-        .stats-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --dark-bg: #1a1d29;
+            --card-bg: #2d3748;
+            --text-light: #e2e8f0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-card {
+            background: var(--secondary-gradient);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s;
+        }
+
+        .stats-card:hover::before {
+            animation: shine 0.6s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            padding: 1rem;
+        }
+
+        .map-container {
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-gradient {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: scale(1.05);
+        }
+
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+
+        .progress-ring circle {
+            fill: transparent;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .alert-custom {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 120px;
+        }
+
+        .sidebar-item {
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-item:hover, .sidebar-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .weather-widget {
+            background: var(--success-gradient);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .crypto-ticker {
+            background: var(--warning-gradient);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker-content {
+            display: inline-block;
+            animation: scroll 30s linear infinite;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .modal-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-content {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            padding: 2rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-right: 0.5rem;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: white;
+            color: #333;
+        }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand text-white fw-bold" href="#">
+                <i class="fas fa-chart-line me-2"></i>DeepQ AI Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-white" href="#" onclick="exportData()">
+                    <i class="fas fa-download me-1"></i>Export
+                </a>
+                <a class="nav-link text-white" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="fas fa-cog me-1"></i>Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
     <div class="dashboard-header">
         <div class="container">
-            <h1 class="display-4">DeepQ AI Dashboard</h1>
-            <p class="lead">Interactive World Bank Data Visualization</p>
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-4 animate__animated animate__fadeInLeft">
+                        <i class="fas fa-globe-americas me-3"></i>Advanced Analytics Dashboard
+                    </h1>
+                    <p class="lead animate__animated animate__fadeInLeft animate__delay-1s">
+                        Real-time World Bank Data • Economic Indicators • Interactive Visualizations
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="weather-widget animate__animated animate__fadeInRight">
+                        <i class="fas fa-cloud-sun fa-2x mb-2"></i>
+                        <h5 id="weatherTemp">22°C</h5>
+                        <small id="weatherLocation">Global Average</small>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="container mt-4">
-        <!-- Stats Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body text-center">
-                        <h3 id="totalCountries">195</h3>
-                        <p>Countries</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body text-center">
-                        <h3 id="totalIndicators">1,400+</h3>
-                        <p>Indicators</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body text-center">
-                        <h3 id="dataPoints">50M+</h3>
-                        <p>Data Points</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card stats-card">
-                    <div class="card-body text-center">
-                        <h3 id="lastUpdate">2024</h3>
-                        <p>Last Updated</p>
-                    </div>
-                </div>
-            </div>
+    <!-- Crypto Ticker -->
+    <div class="crypto-ticker">
+        <div class="ticker-content" id="cryptoTicker">
+            <span class="me-4"><i class="fab fa-bitcoin"></i> BTC: $43,250 (+2.5%)</span>
+            <span class="me-4"><i class="fab fa-ethereum"></i> ETH: $2,680 (+1.8%)</span>
+            <span class="me-4">📈 S&P 500: 4,750 (+0.8%)</span>
+            <span class="me-4">💰 Gold: $2,050 (-0.3%)</span>
+            <span class="me-4">🛢️ Oil: $78.50 (+1.2%)</span>
         </div>
+    </div>
 
-        <!-- Controls -->
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <select class="form-select" id="countrySelect">
-                    <option value="all">All Countries</option>
-                    <option value="US">United States</option>
-                    <option value="CN">China</option>
-                    <option value="JP">Japan</option>
-                    <option value="DE">Germany</option>
-                    <option value="IN">India</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <select class="form-select" id="indicatorSelect">
-                    <option value="gdp">GDP (Current US$)</option>
-                    <option value="population">Population</option>
-                    <option value="co2">CO2 Emissions</option>
-                    <option value="inflation">Inflation Rate</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <button class="btn btn-primary w-100" onclick="updateCharts()">Update Charts</button>
-            </div>
-        </div>
-
-        <!-- Charts -->
+    <div class="container-fluid mt-4">
         <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>GDP Trends (Line Chart)</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="lineChart"></canvas>
-                        </div>
-                    </div>
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                <div class="sidebar">
+                    <h6 class="text-white mb-3"><i class="fas fa-list me-2"></i>Navigation</h6>
+                    <a href="#overview" class="sidebar-item active" onclick="showSection('overview')">
+                        <i class="fas fa-tachometer-alt me-2"></i>Overview
+                    </a>
+                    <a href="#economics" class="sidebar-item" onclick="showSection('economics')">
+                        <i class="fas fa-chart-line me-2"></i>Economics
+                    </a>
+                    <a href="#demographics" class="sidebar-item" onclick="showSection('demographics')">
+                        <i class="fas fa-users me-2"></i>Demographics
+                    </a>
+                    <a href="#environment" class="sidebar-item" onclick="showSection('environment')">
+                        <i class="fas fa-leaf me-2"></i>Environment
+                    </a>
+                    <a href="#map" class="sidebar-item" onclick="showSection('map')">
+                        <i class="fas fa-map me-2"></i>World Map
+                    </a>
+                    <a href="#ai-insights" class="sidebar-item" onclick="showSection('ai-insights')">
+                        <i class="fas fa-brain me-2"></i>AI Insights
+                    </a>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Population Comparison (Bar Chart)</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="barChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>CO2 Emissions Over Time (Area Chart)</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="areaChart"></canvas>
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <!-- Control Panel -->
+                <div class="control-panel animate__animated animate__fadeInUp">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Country/Region</label>
+                            <select class="form-select" id="countrySelect" onchange="updateDashboard()">
+                                <option value="WLD">🌍 World</option>
+                                <option value="US">🇺🇸 United States</option>
+                                <option value="CN">🇨🇳 China</option>
+                                <option value="JP">🇯🇵 Japan</option>
+                                <option value="DE">🇩🇪 Germany</option>
+                                <option value="IN">🇮🇳 India</option>
+                                <option value="GB">🇬🇧 United Kingdom</option>
+                                <option value="FR">🇫🇷 France</option>
+                                <option value="BR">🇧🇷 Brazil</option>
+                                <option value="CA">🇨🇦 Canada</option>
+                            </select>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Features Section -->
-        <div class="row mt-5">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h3>🚀 Features</h3>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h5>Dashboard Features</h5>
-                                <ul>
-                                    <li><strong>Interactive Charts:</strong> Line charts, bar charts, and area charts using Chart.js</li>
-                                    <li><strong>Dynamic Data:</strong> Real-time data fetching from World Bank Open Data API</li>
-                                    <li><strong>Filtering System:</strong> Filter by countries, date ranges, and categories</li>
-                                    <li><strong>Responsive Design:</strong> Mobile-friendly Bootstrap interface</li>
-                                </ul>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Time Period</label>
+                            <select class="form-select" id="yearSelect" onchange="updateDashboard()">
+                                <option value="2023">2023</option>
+                                <option value="2022">2022</option>
+                                <option value="2021">2021</option>
+                                <option value="2020">2020</option>
+                                <option value="2019">2019</option>
+                                <option value="range">2019-2023</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Data Source</label>
+                            <select class="form-select" id="sourceSelect">
+                                <option value="worldbank">World Bank</option>
+                                <option value="imf">IMF</option>
+                                <option value="oecd">OECD</option>
+                                <option value="un">United Nations</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Actions</label>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-gradient" onclick="refreshData()">
+                                    <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                                </button>
                             </div>
-                            <div class="col-md-6">
-                                <h5>🔧 Technology Stack</h5>
-                                <ul>
-                                    <li><strong>Backend:</strong> Django 4.2.7, Django REST Framework</li>
-                                    <li><strong>Frontend:</strong> HTML5, CSS3, JavaScript, Bootstrap 5, Chart.js</li>
-                                    <li><strong>Database:</strong> SQLite (development), PostgreSQL (production)</li>
-                                    <li><strong>API:</strong> World Bank Open Data API</li>
-                                </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-white mt-2">Fetching real-time data...</p>
+                </div>
+
+                <!-- Overview Section -->
+                <div id="overview-section" class="dashboard-section">
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card animate__animated animate__fadeInUp">
+                                <i class="fas fa-globe fa-3x mb-3"></i>
+                                <h2 id="totalCountries">195</h2>
+                                <p class="mb-0">Countries Tracked</p>
+                                <small class="opacity-75">Real-time monitoring</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card animate__animated animate__fadeInUp animate__delay-1s">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <h2 id="totalIndicators">1,400+</h2>
+                                <p class="mb-0">Economic Indicators</p>
+                                <small class="opacity-75">Updated daily</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card animate__animated animate__fadeInUp animate__delay-2s">
+                                <i class="fas fa-database fa-3x mb-3"></i>
+                                <h2 id="dataPoints">50M+</h2>
+                                <p class="mb-0">Data Points</p>
+                                <small class="opacity-75">Historical & current</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card animate__animated animate__fadeInUp animate__delay-3s">
+                                <i class="fas fa-clock fa-3x mb-3"></i>
+                                <h2 id="lastUpdate">Live</h2>
+                                <p class="mb-0">Data Status</p>
+                                <small class="opacity-75" id="lastUpdateTime">Updated now</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="glass-card">
+                                <div class="card-body text-center text-white">
+                                    <h5><i class="fas fa-dollar-sign me-2"></i>Global GDP</h5>
+                                    <div class="progress-ring">
+                                        <svg width="120" height="120">
+                                            <circle cx="60" cy="60" r="50" stroke="#ffffff30" />
+                                            <circle cx="60" cy="60" r="50" stroke="#fff" stroke-dasharray="314" stroke-dashoffset="78" />
+                                        </svg>
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                            <h4>$96.5T</h4>
+                                            <small>+3.2%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="glass-card">
+                                <div class="card-body text-center text-white">
+                                    <h5><i class="fas fa-users me-2"></i>World Population</h5>
+                                    <div class="progress-ring">
+                                        <svg width="120" height="120">
+                                            <circle cx="60" cy="60" r="50" stroke="#ffffff30" />
+                                            <circle cx="60" cy="60" r="50" stroke="#fff" stroke-dasharray="314" stroke-dashoffset="31" />
+                                        </svg>
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                            <h4>8.1B</h4>
+                                            <small>+0.9%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="glass-card">
+                                <div class="card-body text-center text-white">
+                                    <h5><i class="fas fa-leaf me-2"></i>CO2 Levels</h5>
+                                    <div class="progress-ring">
+                                        <svg width="120" height="120">
+                                            <circle cx="60" cy="60" r="50" stroke="#ffffff30" />
+                                            <circle cx="60" cy="60" r="50" stroke="#ff6b6b" stroke-dasharray="314" stroke-dashoffset="125" />
+                                        </svg>
+                                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                            <h4>421ppm</h4>
+                                            <small>+2.1%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="glass-card">
+                                <div class="card-header bg-transparent border-0">
+                                    <ul class="nav nav-tabs" role="tablist">
+                                        <li class="nav-item">
+                                            <a class="nav-link active" data-bs-toggle="tab" href="#gdp-tab">GDP Trends</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#inflation-tab">Inflation</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" data-bs-toggle="tab" href="#trade-tab">Trade</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="gdp-tab">
+                                        <div class="chart-container">
+                                            <canvas id="gdpChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="inflation-tab">
+                                        <div class="chart-container">
+                                            <canvas id="inflationChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="trade-tab">
+                                        <div class="chart-container">
+                                            <canvas id="tradeChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="glass-card">
+                                <div class="card-body text-white">
+                                    <h5><i class="fas fa-trophy me-2"></i>Top Performers</h5>
+                                    <div class="data-table">
+                                        <table class="table table-sm">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Country</th>
+                                                    <th>GDP Growth</th>
+                                                    <th>Rank</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="topPerformersTable">
+                                                <tr>
+                                                    <td>🇮🇳 India</td>
+                                                    <td class="text-success">+6.8%</td>
+                                                    <td>1</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>🇨🇳 China</td>
+                                                    <td class="text-success">+5.2%</td>
+                                                    <td>2</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>🇻🇳 Vietnam</td>
+                                                    <td class="text-success">+4.9%</td>
+                                                    <td>3</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>🇮🇩 Indonesia</td>
+                                                    <td class="text-success">+4.5%</td>
+                                                    <td>4</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>🇵🇭 Philippines</td>
+                                                    <td class="text-success">+4.2%</td>
+                                                    <td>5</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- World Map Section -->
+                <div id="map-section" class="dashboard-section" style="display: none;">
+                    <div class="glass-card">
+                        <div class="card-body text-white">
+                            <h4><i class="fas fa-map me-2"></i>Interactive World Map</h4>
+                            <p>Click on countries to view detailed economic data</p>
+                            <div id="worldMap" class="map-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div id="ai-insights-section" class="dashboard-section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="glass-card">
+                                <div class="card-body text-white">
+                                    <h5><i class="fas fa-brain me-2"></i>AI Economic Forecast</h5>
+                                    <div class="alert alert-info">
+                                        <strong>🤖 AI Analysis:</strong> Based on current trends, global GDP is projected to grow by 3.1% in 2024, with emerging markets leading the recovery.
+                                    </div>
+                                    <div class="chart-container">
+                                        <canvas id="forecastChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="glass-card">
+                                <div class="card-body text-white">
+                                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Risk Assessment</h5>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Inflation Risk</span>
+                                            <span class="text-warning">Medium</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-warning" style="width: 60%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Market Volatility</span>
+                                            <span class="text-danger">High</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-danger" style="width: 80%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Currency Stability</span>
+                                            <span class="text-success">Low Risk</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" style="width: 30%"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -160,126 +637,446 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content modal-glass">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-white">Dashboard Settings</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-white">
+                    <div class="mb-3">
+                        <label class="form-label">Theme</label>
+                        <select class="form-select">
+                            <option>Dark Mode</option>
+                            <option>Light Mode</option>
+                            <option>Auto</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Update Frequency</label>
+                        <select class="form-select">
+                            <option>Real-time</option>
+                            <option>Every 5 minutes</option>
+                            <option>Hourly</option>
+                            <option>Daily</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="notifications" checked>
+                        <label class="form-check-label" for="notifications">
+                            Enable notifications
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-gradient">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sample data for demonstration
-        const sampleData = {
+        // Global variables
+        let charts = {};
+        let worldMap;
+        let currentSection = 'overview';
+
+        // Enhanced sample data with more realistic values
+        const enhancedData = {
             gdp: {
-                labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+                labels: ['2019', '2020', '2021', '2022', '2023', '2024*'],
                 datasets: [{
-                    label: 'GDP (Trillions USD)',
-                    data: [20.5, 21.4, 20.9, 23.3, 25.5, 26.9],
+                    label: 'Global GDP (Trillions USD)',
+                    data: [87.8, 84.9, 96.1, 100.4, 105.0, 108.5],
                     borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }]
-            },
-            population: {
-                labels: ['USA', 'China', 'India', 'Indonesia', 'Pakistan'],
-                datasets: [{
-                    label: 'Population (Millions)',
-                    data: [331, 1439, 1380, 273, 225],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.8)',
-                        'rgba(54, 162, 235, 0.8)',
-                        'rgba(255, 205, 86, 0.8)',
-                        'rgba(75, 192, 192, 0.8)',
-                        'rgba(153, 102, 255, 0.8)'
-                    ]
-                }]
-            },
-            co2: {
-                labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
-                datasets: [{
-                    label: 'CO2 Emissions (Billion Tons)',
-                    data: [36.7, 36.8, 34.8, 36.3, 37.1, 37.4],
-                    backgroundColor: 'rgba(255, 99, 132, 0.3)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    fill: true,
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'USA GDP',
+                    data: [21.4, 20.9, 23.3, 25.5, 26.9, 28.2],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     tension: 0.4
+                }, {
+                    label: 'China GDP',
+                    data: [14.3, 14.7, 17.7, 17.9, 18.5, 19.2],
+                    borderColor: 'rgb(255, 205, 86)',
+                    backgroundColor: 'rgba(255, 205, 86, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            inflation: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Global Inflation Rate (%)',
+                    data: [3.2, 3.5, 4.1, 4.8, 5.2, 5.8, 6.1, 5.9, 5.4, 4.9, 4.2, 3.8],
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4
+                }]
+            },
+            trade: {
+                labels: ['Q1 2023', 'Q2 2023', 'Q3 2023', 'Q4 2023', 'Q1 2024'],
+                datasets: [{
+                    label: 'Global Exports (Trillions USD)',
+                    data: [5.8, 6.2, 6.1, 6.5, 6.8],
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)'
+                }, {
+                    label: 'Global Imports (Trillions USD)',
+                    data: [5.9, 6.0, 6.2, 6.3, 6.6],
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)'
+                }]
+            },
+            forecast: {
+                labels: ['2024', '2025', '2026', '2027', '2028'],
+                datasets: [{
+                    label: 'AI Forecast - GDP Growth (%)',
+                    data: [3.1, 3.4, 3.2, 2.9, 3.0],
+                    borderColor: 'rgb(153, 102, 255)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Conservative Estimate',
+                    data: [2.8, 3.0, 2.9, 2.6, 2.7],
+                    borderColor: 'rgb(255, 159, 64)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                    tension: 0.4,
+                    borderDash: [5, 5]
                 }]
             }
         };
 
-        // Initialize charts
-        let lineChart, barChart, areaChart;
-
-        function initCharts() {
-            // Line Chart
-            const lineCtx = document.getElementById('lineChart').getContext('2d');
-            lineChart = new Chart(lineCtx, {
-                type: 'line',
-                data: sampleData.gdp,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'GDP Growth Over Time'
-                        }
-                    }
-                }
-            });
-
-            // Bar Chart
-            const barCtx = document.getElementById('barChart').getContext('2d');
-            barChart = new Chart(barCtx, {
-                type: 'bar',
-                data: sampleData.population,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Population by Country'
-                        }
-                    }
-                }
-            });
-
-            // Area Chart
-            const areaCtx = document.getElementById('areaChart').getContext('2d');
-            areaChart = new Chart(areaCtx, {
-                type: 'line',
-                data: sampleData.co2,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Global CO2 Emissions Trend'
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateCharts() {
-            const country = document.getElementById('countrySelect').value;
-            const indicator = document.getElementById('indicatorSelect').value;
-            
-            // Simulate data update
-            if (indicator === 'gdp') {
-                lineChart.data = sampleData.gdp;
-                lineChart.update();
-            } else if (indicator === 'population') {
-                barChart.data = sampleData.population;
-                barChart.update();
-            } else if (indicator === 'co2') {
-                areaChart.data = sampleData.co2;
-                areaChart.update();
-            }
-            
-            // Show update notification
-            alert(`Updated charts for ${country === 'all' ? 'All Countries' : country} - ${indicator.toUpperCase()}`);
-        }
-
-        // Initialize charts when page loads
+        // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            initCharts();
+            initializeCharts();
+            initializeMap();
+            updateTime();
+            setInterval(updateTime, 1000);
+            setInterval(updateCryptoTicker, 5000);
+            
+            // Simulate real-time data updates
+            setInterval(simulateDataUpdate, 30000);
+        });
+
+        function initializeCharts() {
+            // GDP Chart
+            const gdpCtx = document.getElementById('gdpChart').getContext('2d');
+            charts.gdp = new Chart(gdpCtx, {
+                type: 'line',
+                data: enhancedData.gdp,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Global GDP Trends (2019-2024)',
+                            color: '#333'
+                        },
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'GDP (Trillions USD)'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // Inflation Chart
+            const inflationCtx = document.getElementById('inflationChart').getContext('2d');
+            charts.inflation = new Chart(inflationCtx, {
+                type: 'line',
+                data: enhancedData.inflation,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Global Inflation Rate (2024)',
+                            color: '#333'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Inflation Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Trade Chart
+            const tradeCtx = document.getElementById('tradeChart').getContext('2d');
+            charts.trade = new Chart(tradeCtx, {
+                type: 'bar',
+                data: enhancedData.trade,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Global Trade Volume',
+                            color: '#333'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Trade Volume (Trillions USD)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Forecast Chart
+            const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+            charts.forecast = new Chart(forecastCtx, {
+                type: 'line',
+                data: enhancedData.forecast,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'AI Economic Forecast',
+                            color: 'white'
+                        },
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            title: {
+                                display: true,
+                                text: 'Growth Rate (%)',
+                                color: 'white'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initializeMap() {
+            worldMap = L.map('worldMap').setView([20, 0], 2);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(worldMap);
+
+            // Add sample markers for major economies
+            const majorEconomies = [
+                {lat: 39.9042, lng: -77.0369, name: 'USA', gdp: '$26.9T', growth: '+2.1%'},
+                {lat: 35.8617, lng: 104.1954, name: 'China', gdp: '$17.9T', growth: '+5.2%'},
+                {lat: 36.2048, lng: 138.2529, name: 'Japan', gdp: '$4.2T', growth: '+1.8%'},
+                {lat: 51.1657, lng: 10.4515, name: 'Germany', gdp: '$4.1T', growth: '+1.4%'},
+                {lat: 20.5937, lng: 78.9629, name: 'India', gdp: '$3.7T', growth: '+6.8%'}
+            ];
+
+            majorEconomies.forEach(country => {
+                L.marker([country.lat, country.lng])
+                    .addTo(worldMap)
+                    .bindPopup(`<b>${country.name}</b><br>GDP: ${country.gdp}<br>Growth: ${country.growth}`);
+            });
+        }
+
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard-section').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show selected section
+            document.getElementById(section + '-section').style.display = 'block';
+            
+            // Update sidebar
+            document.querySelectorAll('.sidebar-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            currentSection = section;
+            
+            // Resize map if map section is shown
+            if (section === 'map') {
+                setTimeout(() => {
+                    worldMap.invalidateSize();
+                }, 100);
+            }
+        }
+
+        function updateDashboard() {
+            showLoading();
+            
+            setTimeout(() => {
+                // Simulate data update
+                const country = document.getElementById('countrySelect').value;
+                const year = document.getElementById('yearSelect').value;
+                
+                // Update charts with new data (simulated)
+                Object.keys(charts).forEach(chartKey => {
+                    if (charts[chartKey]) {
+                        charts[chartKey].update();
+                    }
+                });
+                
+                hideLoading();
+                showNotification(`Dashboard updated for ${country} - ${year}`, 'success');
+            }, 1500);
+        }
+
+        function refreshData() {
+            showLoading();
+            
+            setTimeout(() => {
+                // Simulate API call
+                simulateDataUpdate();
+                hideLoading();
+                showNotification('Data refreshed successfully!', 'success');
+            }, 2000);
+        }
+
+        function simulateDataUpdate() {
+            // Update stats with random variations
+            const stats = ['totalCountries', 'totalIndicators', 'dataPoints'];
+            stats.forEach(stat => {
+                const element = document.getElementById(stat);
+                if (element && stat !== 'lastUpdate') {
+                    const currentValue = parseInt(element.textContent.replace(/[^\d]/g, ''));
+                    const variation = Math.floor(Math.random() * 10) - 5;
+                    element.textContent = (currentValue + variation).toLocaleString();
+                }
+            });
+        }
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdateTime').textContent = 
+                `Updated ${now.toLocaleTimeString()}`;
+        }
+
+        function updateCryptoTicker() {
+            // Simulate crypto price updates
+            const variations = ['+', '-'];
+            const cryptoData = [
+                'BTC: $' + (43000 + Math.floor(Math.random() * 1000)),
+                'ETH: $' + (2600 + Math.floor(Math.random() * 200)),
+                'S&P 500: ' + (4700 + Math.floor(Math.random() * 100)),
+                'Gold: $' + (2000 + Math.floor(Math.random() * 100)),
+                'Oil: $' + (75 + Math.floor(Math.random() * 10))
+            ];
+            
+            const ticker = document.getElementById('cryptoTicker');
+            ticker.innerHTML = cryptoData.map(data => 
+                `<span class="me-4">${data} (${variations[Math.floor(Math.random() * 2)]}${(Math.random() * 3).toFixed(1)}%)</span>`
+            ).join('');
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function showNotification(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function exportData() {
+            showNotification('Exporting dashboard data...', 'info');
+            
+            setTimeout(() => {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    country: document.getElementById('countrySelect').value,
+                    year: document.getElementById('yearSelect').value,
+                    charts: Object.keys(charts),
+                    stats: {
+                        countries: document.getElementById('totalCountries').textContent,
+                        indicators: document.getElementById('totalIndicators').textContent,
+                        dataPoints: document.getElementById('dataPoints').textContent
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'deepq-dashboard-export.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('Data exported successfully!', 'success');
+            }, 1000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        refreshData();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportData();
+                        break;
+                }
+            }
+        });
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     </script>
 </body>
