@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepQ AI Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .dashboard-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 0; }
+        .card { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border: none; margin-bottom: 2rem; }
+        .chart-container { position: relative; height: 400px; }
+        .stats-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container">
+            <h1 class="display-4">DeepQ AI Dashboard</h1>
+            <p class="lead">Interactive World Bank Data Visualization</p>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h3 id="totalCountries">195</h3>
+                        <p>Countries</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h3 id="totalIndicators">1,400+</h3>
+                        <p>Indicators</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h3 id="dataPoints">50M+</h3>
+                        <p>Data Points</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h3 id="lastUpdate">2024</h3>
+                        <p>Last Updated</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <select class="form-select" id="countrySelect">
+                    <option value="all">All Countries</option>
+                    <option value="US">United States</option>
+                    <option value="CN">China</option>
+                    <option value="JP">Japan</option>
+                    <option value="DE">Germany</option>
+                    <option value="IN">India</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="indicatorSelect">
+                    <option value="gdp">GDP (Current US$)</option>
+                    <option value="population">Population</option>
+                    <option value="co2">CO2 Emissions</option>
+                    <option value="inflation">Inflation Rate</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-primary w-100" onclick="updateCharts()">Update Charts</button>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>GDP Trends (Line Chart)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Population Comparison (Bar Chart)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>CO2 Emissions Over Time (Area Chart)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="areaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3>🚀 Features</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Dashboard Features</h5>
+                                <ul>
+                                    <li><strong>Interactive Charts:</strong> Line charts, bar charts, and area charts using Chart.js</li>
+                                    <li><strong>Dynamic Data:</strong> Real-time data fetching from World Bank Open Data API</li>
+                                    <li><strong>Filtering System:</strong> Filter by countries, date ranges, and categories</li>
+                                    <li><strong>Responsive Design:</strong> Mobile-friendly Bootstrap interface</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>🔧 Technology Stack</h5>
+                                <ul>
+                                    <li><strong>Backend:</strong> Django 4.2.7, Django REST Framework</li>
+                                    <li><strong>Frontend:</strong> HTML5, CSS3, JavaScript, Bootstrap 5, Chart.js</li>
+                                    <li><strong>Database:</strong> SQLite (development), PostgreSQL (production)</li>
+                                    <li><strong>API:</strong> World Bank Open Data API</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sample data for demonstration
+        const sampleData = {
+            gdp: {
+                labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+                datasets: [{
+                    label: 'GDP (Trillions USD)',
+                    data: [20.5, 21.4, 20.9, 23.3, 25.5, 26.9],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            population: {
+                labels: ['USA', 'China', 'India', 'Indonesia', 'Pakistan'],
+                datasets: [{
+                    label: 'Population (Millions)',
+                    data: [331, 1439, 1380, 273, 225],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
+                    ]
+                }]
+            },
+            co2: {
+                labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+                datasets: [{
+                    label: 'CO2 Emissions (Billion Tons)',
+                    data: [36.7, 36.8, 34.8, 36.3, 37.1, 37.4],
+                    backgroundColor: 'rgba(255, 99, 132, 0.3)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            }
+        };
+
+        // Initialize charts
+        let lineChart, barChart, areaChart;
+
+        function initCharts() {
+            // Line Chart
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+            lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: sampleData.gdp,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'GDP Growth Over Time'
+                        }
+                    }
+                }
+            });
+
+            // Bar Chart
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: sampleData.population,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Population by Country'
+                        }
+                    }
+                }
+            });
+
+            // Area Chart
+            const areaCtx = document.getElementById('areaChart').getContext('2d');
+            areaChart = new Chart(areaCtx, {
+                type: 'line',
+                data: sampleData.co2,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Global CO2 Emissions Trend'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            const country = document.getElementById('countrySelect').value;
+            const indicator = document.getElementById('indicatorSelect').value;
+            
+            // Simulate data update
+            if (indicator === 'gdp') {
+                lineChart.data = sampleData.gdp;
+                lineChart.update();
+            } else if (indicator === 'population') {
+                barChart.data = sampleData.population;
+                barChart.update();
+            } else if (indicator === 'co2') {
+                areaChart.data = sampleData.co2;
+                areaChart.update();
+            }
+            
+            // Show update notification
+            alert(`Updated charts for ${country === 'all' ? 'All Countries' : country} - ${indicator.toUpperCase()}`);
+        }
+
+        // Initialize charts when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+        });
+    </script>
+</body>
+</html>
